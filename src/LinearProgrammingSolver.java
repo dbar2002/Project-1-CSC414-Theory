@@ -12,7 +12,7 @@ public class LinearProgrammingSolver {
         // Print the result
         System.out.println("Optimal values for x:");
         for (int i = 0; i < n; i++) {
-            System.out.println("x" + i + ": " + x[i]);
+            System.out.println("x[" + i + "] = " + x[i]);
         }
     }
 

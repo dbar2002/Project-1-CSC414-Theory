@@ -1,72 +1,93 @@
+import java.util.Arrays;
+
 public class ExponentialLinearProgrammingSolver {
-    public static void main(String[] args) {
-        // Example usage
-        int n = 3; // You can change the size of n
-        int[][] A = {{3, 8, 5}, {2, 3, 1}, {9, 6, 0}};
-        int[] b = {5, 12, 2};
-        int[] c = {8, 9, 1};
-        int[] s = {3, 3, 1};
+    public static int[] solveLinearProgram(int numberOfVariables, int[] objectiveFunctionCoefficients, int[] constraintConstants, int[][] constraintMatrix, int[] slackVariables) {
+        int[][] augmentedMatrix = constructAugmentedMatrix(constraintMatrix, slackVariables, constraintConstants);
+        int[] solution = solveSystemOfEquations(augmentedMatrix);
 
-        int[] x = solveExponentialLinearProgramming(n, A, b, c, s);
-
-        // Print the result
-        if (x != null) {
-            System.out.println("Optimal values for x:");
-            for (int i = 0; i < n; i++) {
-                System.out.println("x" + i + ": " + x[i]);
-            }
-        } else {
-            System.out.println("No valid solution found.");
-        }
+        return Arrays.copyOfRange(solution, 0, numberOfVariables);
     }
 
-    public static int[] solveExponentialLinearProgramming(int n, int[][] A, int[] b, int[] c, int[] s) {
-        int[] bestX = new int[n];
-        int maxDotProduct = Integer.MIN_VALUE;
+    private static int[][] constructAugmentedMatrix(int[][] constraintMatrix, int[] slackVariables, int[] constraintConstants) {
+        int numberOfRows = constraintMatrix.length;
+        int numberOfColumns = constraintMatrix[0].length + 1;
+        int[][] augmentedMatrix = new int[numberOfRows][numberOfColumns];
 
-        // Iterate through all possible combinations of x values
-        for (int i = 0; i <= s[0]; i++) {
-            for (int j = 0; j <= s[1]; j++) {
-                for (int k = 0; k <= s[2]; k++) {
-                    int[] currentX = {i, j, k};
+        // Construct augmented matrix
+        for (int i = 0; i < numberOfRows; i++) {
+            System.arraycopy(constraintMatrix[i], 0, augmentedMatrix[i], 0, constraintMatrix[i].length);
+            augmentedMatrix[i][numberOfColumns - 1] = constraintConstants[i] - slackVariables[i];
+        }
 
-                    if (isValidSolution(n, A, b, currentX, s)) {
-                        int dotProduct = calculateDotProduct(c, currentX);
-                        if (dotProduct > maxDotProduct) {
-                            maxDotProduct = dotProduct;
-                            System.arraycopy(currentX, 0, bestX, 0, n);
-                        }
+        return augmentedMatrix;
+    }
+
+    private static int[] solveSystemOfEquations(int[][] augmentedMatrix) {
+        int numberOfRows = augmentedMatrix.length;
+        int numberOfVariables = augmentedMatrix[0].length - 1;
+
+        // Gaussian elimination
+        for (int i = 0; i < numberOfRows; i++) {
+            int pivotRow = i;
+
+            // Find pivot element
+            while (pivotRow < numberOfRows && augmentedMatrix[pivotRow][i] == 0) {
+                pivotRow++;
+            }
+
+            // If no pivot element found, continue to the next column
+            if (pivotRow == numberOfRows) {
+                continue;
+            }
+
+            // Swap rows to move pivot element to the current row
+            if (pivotRow != i) {
+                int[] temp = augmentedMatrix[i];
+                augmentedMatrix[i] = augmentedMatrix[pivotRow];
+                augmentedMatrix[pivotRow] = temp;
+            }
+
+            int pivotValue = augmentedMatrix[i][i];
+
+            // Normalize the current row
+            for (int j = i; j <= numberOfVariables; j++) {
+                augmentedMatrix[i][j] /= pivotValue;
+            }
+
+            // Eliminate other rows
+            for (int k = 0; k < numberOfRows; k++) {
+                if (k != i && augmentedMatrix[k][i] != 0) {
+                    int factor = augmentedMatrix[k][i];
+                    for (int j = i; j <= numberOfVariables; j++) {
+                        augmentedMatrix[k][j] -= factor * augmentedMatrix[i][j];
                     }
                 }
             }
         }
 
-        // Check if any valid solution was found
-        if (isValidSolution(n, A, b, bestX, s)) {
-            return bestX;
-        } else {
-            return null;  // No valid solution found
+        // Extract solution from the augmented matrix
+        int[] solution = new int[numberOfVariables];
+        for (int i = 0; i < numberOfVariables; i++) {
+            solution[i] = augmentedMatrix[i][numberOfVariables];
         }
+
+        return solution;
     }
 
-    private static boolean isValidSolution(int n, int[][] A, int[] b, int[] x, int[] s) {
-        for (int i = 0; i < n; i++) {
-            int lhs = 0;
-            for (int j = 0; j < n; j++) {
-                lhs += A[i][j] * x[j];
-            }
-            if (lhs + s[i] != b[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
+    public static void main(String[] args) {
+        // Example usage
+        int numberOfVariables = 2;
+        int[] objectiveFunctionCoefficients = {2, 3};
+        int[] constraintConstants = {4, 6};
+        int[][] constraintMatrix = {{1, 2}, {2, 1}};
+        int[] slackVariables = {0, 0};
 
-    private static int calculateDotProduct(int[] c, int[] x) {
-        int result = 0;
-        for (int i = 0; i < c.length; i++) {
-            result += c[i] * x[i];
+        int[] solution = solveLinearProgram(numberOfVariables, objectiveFunctionCoefficients, constraintConstants, constraintMatrix, slackVariables);
+
+// Print solution without ensuring non-negativity
+        System.out.println("Optimal values for x:");
+        for (int i = 0; i < numberOfVariables; i++) {
+            System.out.println("x[" + i + "] = " + solution[i]);
         }
-        return result;
     }
 }
