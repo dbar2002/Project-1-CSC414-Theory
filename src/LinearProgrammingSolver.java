@@ -1,43 +1,112 @@
 public class LinearProgrammingSolver {
     public static void main(String[] args) {
-        // Define the matrices and vectors
+        // Example usage
+        int n = 3; // You can change the size of n
         double[][] A = {{3.2, 8.7, 5.9}, {2.4, 3.1, 1.1}, {9.7, 6.1, 0.3}};
         double[] b = {5, 12.9, 2};
-        double[] s = {3.7, 3.8, 1};
         double[] c = {8.2, 9.7, 1.1};
+        double[] s = {3.7, 3.8, 1};
 
-        // Set the number of iterations
-        int iterations = 1000;
+        double[] x = solveLinearProgramming(n, A, b, c, s);
 
-        // Call the solver
-        double[] optimalX = solveLinearProgramming(A, b, s, c, iterations);
-
-        // Print the optimal values of x
-        System.out.print("Optimal x: [");
-        for (double value : optimalX) {
-            System.out.print(value + " ");
+        // Print the result
+        System.out.println("Optimal values for x:");
+        for (int i = 0; i < n; i++) {
+            System.out.println("x" + i + ": " + x[i]);
         }
-        System.out.println("]");
     }
 
-    // Solver for linear programming problem
-    private static double[] solveLinearProgramming(double[][] A, double[] b, double[] s, double[] c, int iterations) {
-        int n = c.length; // Size of vectors and matrices
-        double[] x = new double[n]; // Initial guess for x
+    public static double[] solveLinearProgramming(int n, double[][] A, double[] b, double[] c, double[] s) {
+        // Add slack variables to convert inequalities to equalities
+        double[][] tableau = new double[n][n + 1];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                tableau[i][j] = A[i][j];
+            }
+            tableau[i][n] = s[i];
+        }
 
-        // Iterative optimization
-        for (int iter = 0; iter < iterations; iter++) {
-            // Update x based on the gradient ascent
-            for (int i = 0; i < n; i++) {
-                double sum = 0;
-                for (int j = 0; j < n; j++) {
-                    sum += A[i][j] * x[j];
-                }
-                x[i] += 0.01 * (c[i] - sum); // Adjust the step size as needed
-                x[i] = Math.max(x[i], 0); // Ensure non-negativity
+        // Add the objective function to the tableau
+        double[] objectiveRow = new double[n + 1];
+        for (int i = 0; i < n; i++) {
+            objectiveRow[i] = -c[i];
+        }
+        tableau[n - 1] = objectiveRow;
+
+        // Perform the Simplex method
+        while (true) {
+            int pivotCol = findPivotColumn(tableau);
+            if (pivotCol == -1) {
+                break; // Solution found
+            }
+
+            int pivotRow = findPivotRow(tableau, pivotCol);
+            if (pivotRow == -1) {
+                throw new ArithmeticException("The problem is unbounded");
+            }
+
+            pivotOn(tableau, pivotRow, pivotCol);
+        }
+
+        // Extract the solution from the tableau
+        double[] solution = new double[n];
+        for (int i = 0; i < n; i++) {
+            solution[i] = tableau[i][n];
+        }
+
+        return solution;
+    }
+
+    private static int findPivotColumn(double[][] tableau) {
+        int m = tableau.length;
+        int n = tableau[0].length - 1;
+
+        // Find the most negative entry in the bottom row
+        int pivotCol = -1;
+        for (int j = 0; j < n; j++) {
+            if (tableau[m - 1][j] < 0 && (pivotCol == -1 || tableau[m - 1][j] < tableau[m - 1][pivotCol])) {
+                pivotCol = j;
             }
         }
 
-        return x;
+        return pivotCol;
+    }
+
+    private static int findPivotRow(double[][] tableau, int pivotCol) {
+        int m = tableau.length;
+        int n = tableau[0].length - 1;
+
+        // Find the pivot row with the minimum ratio
+        int pivotRow = -1;
+        for (int i = 0; i < m - 1; i++) {
+            if (tableau[i][pivotCol] > 0) {
+                if (pivotRow == -1 || (tableau[i][n] / tableau[i][pivotCol]) < (tableau[pivotRow][n] / tableau[pivotRow][pivotCol])) {
+                    pivotRow = i;
+                }
+            }
+        }
+
+        return pivotRow;
+    }
+
+    private static void pivotOn(double[][] tableau, int pivotRow, int pivotCol) {
+        int m = tableau.length;
+        int n = tableau[0].length;
+
+        // Make the pivot element 1
+        double pivot = tableau[pivotRow][pivotCol];
+        for (int j = 0; j < n; j++) {
+            tableau[pivotRow][j] /= pivot;
+        }
+
+        // Make the other elements in the pivot column 0
+        for (int i = 0; i < m; i++) {
+            if (i != pivotRow) {
+                double factor = tableau[i][pivotCol];
+                for (int j = 0; j < n; j++) {
+                    tableau[i][j] -= factor * tableau[pivotRow][j];
+                }
+            }
+        }
     }
 }
