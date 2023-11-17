@@ -13,7 +13,6 @@ public class ExponentialLinearProgrammingSolver {
         int numberOfColumns = constraintMatrix[0].length + 1;
         int[][] augmentedMatrix = new int[numberOfRows][numberOfColumns];
 
-        // Construct augmented matrix
         for (int i = 0; i < numberOfRows; i++) {
             System.arraycopy(constraintMatrix[i], 0, augmentedMatrix[i], 0, constraintMatrix[i].length);
             augmentedMatrix[i][numberOfColumns - 1] = constraintConstants[i] - slackVariables[i];
@@ -26,21 +25,17 @@ public class ExponentialLinearProgrammingSolver {
         int numberOfRows = augmentedMatrix.length;
         int numberOfVariables = augmentedMatrix[0].length - 1;
 
-        // Gaussian elimination
         for (int i = 0; i < numberOfRows; i++) {
             int pivotRow = i;
 
-            // Find pivot element
             while (pivotRow < numberOfRows && augmentedMatrix[pivotRow][i] == 0) {
                 pivotRow++;
             }
 
-            // If no pivot element found, continue to the next column
             if (pivotRow == numberOfRows) {
                 continue;
             }
 
-            // Swap rows to move pivot element to the current row
             if (pivotRow != i) {
                 int[] temp = augmentedMatrix[i];
                 augmentedMatrix[i] = augmentedMatrix[pivotRow];
@@ -49,12 +44,10 @@ public class ExponentialLinearProgrammingSolver {
 
             int pivotValue = augmentedMatrix[i][i];
 
-            // Normalize the current row
             for (int j = i; j <= numberOfVariables; j++) {
                 augmentedMatrix[i][j] /= pivotValue;
             }
 
-            // Eliminate other rows
             for (int k = 0; k < numberOfRows; k++) {
                 if (k != i && augmentedMatrix[k][i] != 0) {
                     int factor = augmentedMatrix[k][i];
@@ -65,29 +58,41 @@ public class ExponentialLinearProgrammingSolver {
             }
         }
 
-        // Extract solution from the augmented matrix
         int[] solution = new int[numberOfVariables];
-        for (int i = 0; i < numberOfVariables; i++) {
+        for (int i = 0; i < numberOfRows; i++) {
             solution[i] = augmentedMatrix[i][numberOfVariables];
         }
 
         return solution;
     }
 
+    public static void printSolution(int[] solution, int[] objectiveFunctionCoefficients) {
+        System.out.println("Optimal solution:");
+        for (int i = 0; i < solution.length; i++) {
+            System.out.println("x[" + i + "] = " + solution[i]);
+        }
+
+        int objectiveValue = calculateObjectiveValue(solution, objectiveFunctionCoefficients);
+        System.out.println("Optimal objective function value: " + objectiveValue);
+    }
+
+    private static int calculateObjectiveValue(int[] solution, int[] objectiveFunctionCoefficients) {
+        int value = 0;
+        for (int i = 0; i < solution.length; i++) {
+            value += solution[i] * objectiveFunctionCoefficients[i];
+        }
+        return value;
+    }
+
     public static void main(String[] args) {
-        // Example usage
-        int numberOfVariables = 2;
-        int[] objectiveFunctionCoefficients = {2, 3};
-        int[] constraintConstants = {4, 6};
-        int[][] constraintMatrix = {{1, 2}, {2, 1}};
-        int[] slackVariables = {0, 0};
+        int numberOfVariables = 3;
+        int[] objectiveFunctionCoefficients = {2, 3, 4};
+        int[] constraintConstants = {4, 6, 8};
+        int[][] constraintMatrix = {{1, 2, 3}, {2, 1, 3}};
+        int[] slackVariables = {0, 0, 0};
 
         int[] solution = solveLinearProgram(numberOfVariables, objectiveFunctionCoefficients, constraintConstants, constraintMatrix, slackVariables);
 
-// Print solution without ensuring non-negativity
-        System.out.println("Optimal values for x:");
-        for (int i = 0; i < numberOfVariables; i++) {
-            System.out.println("x[" + i + "] = " + solution[i]);
-        }
+        printSolution(solution, objectiveFunctionCoefficients);
     }
 }
